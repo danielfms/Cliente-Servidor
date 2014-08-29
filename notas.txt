@@ -1,0 +1,157 @@
+zeromq.org
+
+tar xvfz zeromq-4.0.4.tar.gz  //descomprimir
+
+mkdir zmq // crear archivo con nombre zmq
+
+cd zeromq-4.0.4 // ir a 
+
+./configure // ejecutar configure
+
+make -j4 // hasta 4 cores al mismo tiempo // Compilar librería
+
+sudo make install // instalar la librería // con permisos instala de una pero como no:
+
+./configure --prefix=/home/utp/cs/zmq // como no se tiene permiso no se instala en el lugar de librerias determinadas, se instala en otra dirección, y ahora si:
+
+make install // instaló en la carpeta que se creo al inicio zmq
+
+cd ..
+
+cd zmq
+
+cd lib
+
+libzmq.la // versión estática de la librería
+libzmq.so // versión dinámica de la librería
+
+cd .. 
+
+cd include
+
+cd ..
+
+cd ..
+
+mkdir hellocs 
+
+cd hellocs
+
+descargar 
+
+copiar cliente.c y server.c en hellocs
+
+buscar zmq examples
+
+entrar en link de gibhub matrix
+
+--------------------------------------
+//  Hello World client
+#include <zmq.h> 
+#include <string.h> // estandar de c
+#include <stdio.h> // entrada y salida
+#include <unistd.h>
+
+int main (void)
+{
+    printf ("Connecting to hello world server...\n");
+    void *context = zmq_ctx_new ();  // funciones de zmq, crea un contexto que provee un acceso al medio de paso de mensaje como tcp
+    void *requester = zmq_socket (context, ZMQ_REQ); // funcioón que necesita el contexto y crea un socket
+    zmq_connect (requester, "tcp://localhost:5555"); // donde quiero poner el socket a escuchar, solicitud al sistema operativo, puede  que el puerto esté ocupado. Un lado del socket, el otro lado es el del servidor.
+
+    int request_nbr;
+    for (request_nbr = 0; request_nbr != 10; request_nbr++) {
+        char buffer [10];
+        printf ("Sending Hello %d...\n", request_nbr);
+        zmq_send (requester, "Hello", 5, 0); //envía "Hello" con tamaño 5
+        zmq_recv (requester, buffer, 10, 0); // recibe y escribe en buffer con tamaño 10.
+        printf ("Received World %d\n", request_nbr);
+    }
+    zmq_close (requester); // Cierra el socket
+    zmq_ctx_destroy (context); // Destruye el contexto
+    return 0;
+}
+--------------------------------------
+//  Hello World server
+
+#include <zmq.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <assert.h>
+
+int main (void)
+{
+    //  Socket to talk to clients
+    void *context = zmq_ctx_new (); // Por cada agente un contexto
+    void *responder = zmq_socket (context, ZMQ_REP); // 
+    int rc = zmq_bind (responder, "tcp://*:5555"); // crea socket // retorna un 0 si hay un error // asigna el puerto si es permitido
+    assert (rc == 0);
+
+    while (1) {
+        char buffer [10];
+        zmq_recv (responder, buffer, 10, 0); // recibe lo que hay en el socket // la función bloquea si no hay nada en el socket
+        printf ("Received Hello\n");
+        sleep (1);          //  Do some 'work'
+        zmq_send (responder, "World", 5, 0); // enviar respuesta "Work" al cliente por el socket responder
+    }
+    return 0;
+}
+--------------------------------------
+
+Correr Cliente y Servidor
+
+---Cliente----
+
+gcc -I/home/utp/cs/zmq/include -c cliente.c
+gcc -L/home/utp/cs/zmq/lib -o cliente cliente.o -lzmq // Busque en la librería y enlace en zmq
+
+// en otra consola
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utp/cs/zmq/lib 
+
+./cliente
+
+----Servidor---
+
+gcc -I/home/utp/cs/zmq/include -c server.c
+gcc -L/home/utp/cs/zmq/lib -o server server.o -lzmq
+
+./server // saca error, entonces:
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utp/cs/zmq/lib // de nuevo:
+
+./server
+
+
+
+-----------------------
+modificar cliente
+
+
+nt main (void)
+{
+    printf ("Connecting to hello world server...\n");
+    void *context = zmq_ctx_new ();
+    void *requester = zmq_socket (context, ZMQ_REQ);
+    zmq_connect (requester, "tcp://192.168.8.156");
+
+    int request_nbr;
+    for (request_nbr = 0; request_nbr != 10; request_nbr++) {
+        char buffer [10];
+        printf ("Sending Hello %d...\n", request_nbr);
+        zmq_send (requester, "Diego", 5, 0);
+        zmq_recv (requester, buffer, 10, 0);
+        printf ("Received World %d\n", request_nbr);
+    }
+    zmq_close (requester);
+    zmq_ctx_destroy (context);
+    return 0;
+}
+
+
+
+
+
+
+
